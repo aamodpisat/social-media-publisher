@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Publisher</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Outfit:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/app.css?v=3" />
+</head>
+<body>
+  <main class="shell">
+    <header class="hero">
+      <h1>Publisher</h1>
+    </header>
+
+    {% if error %}<p class="banner error">{{ error }}</p>{% endif %}
+    {% if notice %}<p class="banner ok">{{ notice }}</p>{% endif %}
+
+    <div class="actions">
+      <form method="post" action="/actions/generate">
+        <button type="submit">Generate week</button>
+      </form>
+      <form method="post" action="/actions/publish-due">
+        <button type="submit" class="ghost">Post due</button>
+      </form>
+    </div>
+
+    <section>
+      <div class="section-head">
+        <h2>Days</h2>
+        {% if using_defaults %}<span class="quiet">Default</span>{% endif %}
+      </div>
+      <form method="post" action="/settings/days" class="schedule">
+        <div class="pills">
+          {% for value, letter in day_letters %}
+          <label class="pill">
+            <input type="checkbox" name="day" value="{{ value }}" {% if value in effective_days %}checked{% endif %} />
+            <span>{{ letter }}</span>
+          </label>
+          {% endfor %}
+        </div>
+        <div class="schedule-actions">
+          <button type="submit" class="ghost">Save</button>
+          <button type="submit" name="use_env" value="on" class="text">Reset</button>
+        </div>
+      </form>
+    </section>
+
+    <section>
+      <h2>This week</h2>
+      {% if not batches %}
+        <p class="empty">Nothing here yet. Generate a week to begin.</p>
+      {% else %}
+        <ul class="weeks">
+          {% for b in batches %}
+          <li>
+            <a href="/weeks/{{ b.id }}">
+              <span class="week-id">{{ b.id }}</span>
+              <span class="week-meta">{{ b.summary }}</span>
+            </a>
+          </li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    </section>
+  </main>
+</body>
+</html>

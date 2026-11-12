@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{{ batch_id }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Outfit:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/app.css?v=3" />
+</head>
+<body>
+  <main class="shell">
+    <header class="hero split">
+      <div>
+        <a class="back" href="/">Home</a>
+        <h1>{{ batch_id }}</h1>
+      </div>
+      <form method="post" action="/weeks/{{ batch_id }}/approve">
+        <button type="submit" {% if eligible == 0 %}disabled{% endif %}>Approve week</button>
+      </form>
+    </header>
+
+    {% if error %}<p class="banner error">{{ error }}</p>{% endif %}
+    {% if notice %}<p class="banner ok">{{ notice }}</p>{% endif %}
+
+    {% if not items %}
+      <p class="empty">No posts in this batch.</p>
+    {% endif %}
+
+    {% for item in items %}
+    <article class="piece">
+      <div class="piece-head">
+        <span class="tag">{{ item.type_label }}</span>
+        <span class="status s-{{ item.raw.status }}">{{ item.status_label }}</span>
+        <h3>{{ item.raw.title }}</h3>
+      </div>
+      {% if item.raw.error %}<p class="banner error">{{ item.raw.error }}</p>{% endif %}
+      <form id="cap-{{ item.raw.id }}" method="post" action="/items/{{ item.raw.id }}/caption">
+        <input type="hidden" name="batch_id" value="{{ batch_id }}" />
+        <textarea name="caption" rows="4">{{ item.raw.caption }}</textarea>
+      </form>
+      <div class="piece-actions">
+        <button type="submit" class="ghost" form="cap-{{ item.raw.id }}">Save</button>
+        {% if item.can_exclude %}
+        <form method="post" action="/items/{{ item.raw.id }}/exclude">
+          <input type="hidden" name="batch_id" value="{{ batch_id }}" />
+          <button type="submit" class="text danger">Remove</button>
+        </form>
+        {% endif %}
+      </div>
+    </article>
+    {% endfor %}
+  </main>
+</body>
+</html>
