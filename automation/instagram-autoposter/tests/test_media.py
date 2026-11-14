@@ -115,10 +115,21 @@ class MediaTests(unittest.TestCase):
         self.assertEqual(services.posts, [])
         self.assertEqual(self.state["records"]["old"]["status"], "published")
 
-    def test_story_rejects_creator_account(self):
+    def test_identity_uses_supported_facebook_login_fields(self):
         service = object.__new__(mcp.MCPServices)
         service.cfg = SimpleNamespace(account="123", expected_username="actual")
-        service.graph = lambda *args, **kwargs: {"id": "123", "username": "actual", "account_type": "MEDIA_CREATOR"}
+        def graph(method, endpoint, **kwargs):
+            self.assertEqual((method, endpoint), ("GET", "123"))
+            self.assertEqual(kwargs, {"params": {"fields": "id,username"}})
+            return {"id": "123", "username": "actual"}
+        service.graph = graph
+        for kind in ("POST", "STORY", "REEL"):
+            service.validate_account(kind)
+
+    def test_wrong_account_id_is_blocked(self):
+        service = object.__new__(mcp.MCPServices)
+        service.cfg = SimpleNamespace(account="123", expected_username="actual")
+        service.graph = lambda *args, **kwargs: {"id": "456", "username": "actual"}
         with self.assertRaises(core.SafeError):
             service.validate_account("STORY")
 

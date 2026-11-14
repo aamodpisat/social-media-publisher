@@ -176,14 +176,14 @@ class MCPServices(core.Services):
 
 
     def validate_account(self, kind):
-        account = self.graph("GET", self.cfg.account, params={"fields": "id,username,account_type"})
+        # Facebook Login's IG User endpoint does not expose account_type.
+        # Meta enforces Story eligibility when creating the STORIES container.
+        account = self.graph("GET", self.cfg.account, params={"fields": "id,username"})
         if str(account.get("id", "")) != self.cfg.account:
             raise core.SafeError("Meta returned a different account ID. Nothing was published.")
         expected = getattr(self.cfg, "expected_username", "")
         if expected and account.get("username", "").casefold() != expected.casefold():
             raise core.SafeError("Instagram account handle does not match INSTAGRAM_EXPECTED_USERNAME. Check the configured account before publishing.")
-        if kind == "STORY" and account.get("account_type") != "BUSINESS":
-            raise core.SafeError("Stories through Facebook Login require a Business account. This item is held; no Story was published.")
         core.LOG.info("Instagram account identity checked for %s.", kind)
 
     def prepare(self, record, raw):
