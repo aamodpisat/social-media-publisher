@@ -1,0 +1,6 @@
+requests>=2.32.3,<3
+python-dotenv>=1.0.1,<2
+filelock>=3.16.1,<4
+google-auth>=2.35.0,<3
+google-cloud-storage>=2.18.2,<4
+Pillow>=11.0.0,<13

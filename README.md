@@ -61,3 +61,8 @@ See [docs/META_SETUP.md](docs/META_SETUP.md).
 ## Metricool
 
 For the connected photography brand and the manual approved-draft handoff, see [docs/METRICOOL_SETUP.md](docs/METRICOOL_SETUP.md). The local scheduler still uses Meta directly; avoid running it for posts scheduled in Metricool.
+
+
+## Google Drive MCP automation
+
+The separate [Drive MCP Instagram automation](automation/instagram-autoposter/README.md) supports feed photos, Stories and Reels from a Codex task, with a fresh-environment bootstrap and canonical GCS posting history. Credentials and private runtime settings stay outside Git.
