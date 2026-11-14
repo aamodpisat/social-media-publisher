@@ -145,6 +145,25 @@ class MediaTests(unittest.TestCase):
         self.assertEqual(Image.open(io.BytesIO(output)).size, (1080, 1920))
         self.assertEqual(mime, "image/jpeg")
 
+    def test_portrait_story_has_no_feed_padding(self):
+        original = Image.new("RGB", (1080, 1920), (180, 30, 50))
+        raw = io.BytesIO()
+        original.save(raw, "PNG")
+        output, _, _ = media.prepare_media({"kind": "STORY", "is_video": False}, raw.getvalue())
+        with Image.open(io.BytesIO(output)) as result:
+            self.assertEqual(result.size, (1080, 1920))
+            for point in ((0, 0), (1079, 0), (0, 1919), (1079, 1919), (540, 960)):
+                self.assertLess(max(abs(a-b) for a, b in zip(result.getpixel(point), (180, 30, 50))), 5)
+
+    def test_nonportrait_story_keeps_entire_image(self):
+        original = Image.new("RGB", (1080, 1080), (180, 30, 50))
+        raw = io.BytesIO()
+        original.save(raw, "PNG")
+        output, _, _ = media.prepare_media({"kind": "STORY", "is_video": False}, raw.getvalue())
+        with Image.open(io.BytesIO(output)) as result:
+            self.assertEqual(result.getpixel((540, 0)), (255, 255, 255))
+            self.assertLess(result.getpixel((0, 960))[1], 40)
+
     def test_real_video_transcode_and_sample_frames(self):
         source = self.root / "source.mp4"
         subprocess.run(["ffmpeg", "-v", "error", "-nostdin", "-y", "-f", "lavfi", "-i", "color=c=red:s=64x96:r=30", "-f", "lavfi", "-i", "anullsrc=r=48000:cl=stereo", "-t", "3", "-c:v", "libx264", "-threads", "1", "-c:a", "aac", str(source)], capture_output=True, check=True, timeout=60)

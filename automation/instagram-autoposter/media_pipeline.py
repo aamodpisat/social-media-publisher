@@ -7,7 +7,7 @@ import tempfile
 import time
 import uuid
 
-from PIL import Image, ImageOps
+from PIL import Image
 import main as core
 
 VIDEO_LIMIT = 250 * 1024 * 1024
@@ -52,15 +52,7 @@ def prepare_media(record, raw):
     kind = record.get("kind", "POST")
     video = record.get("is_video", False)
     if not video:
-        jpeg = core.prepare_jpeg(raw)
-        if kind == "STORY":
-            with Image.open(io.BytesIO(jpeg)) as source:
-                image = ImageOps.contain(source.convert("RGB"), (1080, 1920))
-                canvas = Image.new("RGB", (1080, 1920), "white")
-                canvas.paste(image, ((1080 - image.width) // 2, (1920 - image.height) // 2))
-                output = io.BytesIO()
-                canvas.save(output, "JPEG", quality=90, optimize=True)
-                jpeg = output.getvalue()
+        jpeg = core.prepare_jpeg(raw, story=kind == "STORY")
         return jpeg, "image/jpeg", jpeg
     work = core.ROOT / "work"
     work.mkdir(exist_ok=True)

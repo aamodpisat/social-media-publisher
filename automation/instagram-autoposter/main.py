@@ -319,7 +319,7 @@ def caption_problems(text, brand_tag):
     return problems
 
 
-def prepare_jpeg(raw):
+def prepare_jpeg(raw, *, story=False):
     """Preserve all content with white padding if the source ratio is unsupported."""
     try:
         with Image.open(io.BytesIO(raw)) as source:
@@ -333,6 +333,16 @@ def prepare_jpeg(raw):
             background = Image.new("RGBA", image.size, "white")
             background.alpha_composite(image)
             image = background.convert("RGB")
+        if story:
+            # Fit the original, before any feed-specific aspect-ratio padding.
+            image = ImageOps.contain(image, (1080, 1920), Image.Resampling.LANCZOS)
+            canvas = Image.new("RGB", (1080, 1920), "white")
+            canvas.paste(image, ((1080 - image.width) // 2, (1920 - image.height) // 2))
+            out = io.BytesIO()
+            canvas.save(out, "JPEG", quality=90, optimize=True)
+            if len(out.getvalue()) > 8 * 1024 * 1024:
+                raise SafeError("Converted JPEG exceeds Instagram's 8 MB limit.")
+            return out.getvalue()
         image.thumbnail((1440, 1800), Image.Resampling.LANCZOS)
         width, height = image.size
         ratio = width / height

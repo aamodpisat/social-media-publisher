@@ -69,6 +69,8 @@ Read authenticated metadata and fetch the original with download_raw_file=true a
 
 Posts: JPEG/PNG images. Stories: JPEG/PNG or MP4/MOV. Reels: MP4/MOV. Sources must be direct children of one configured folder; ambiguous parents and unsupported combinations are rejected. Oldest eligible file across folders is chosen by the Codex task; Python accepts one handoff and does not independently choose another file.
 
+Story photos are fitted directly from the orientation-corrected original to a 1080×1920 canvas, without feed aspect-ratio conversion first. A 9:16 source fills that canvas. Other ratios retain all content with white padding; the workflow does not crop photography or embedded text to force a fill. Feed photos keep their separate aspect-ratio rules.
+
 Source images: at most 25 MB and 40 megapixels. Video source/output: at most 250 MB. Reels: 3 seconds to 15 minutes. Video Stories: at most 60 seconds, without automatic splitting/trimming. Images are converted to JPEG; media is padded when needed rather than cropped. Videos become 1080×1920 H.264/AAC MP4 at 30 fps, retaining available source audio without adding music.
 
 The exact marketing system prompt is embedded in main.py. Actual brand values are supplied separately. Reels use four sampled frames without speech transcription or full-frame-by-frame analysis. Stories have no feed caption or added overlays/stickers; Meta enforces Business-account eligibility when creating the Story container. The Facebook Login IG User endpoint does not expose account_type. Expected account ID/username are checked before publication using its supported id and username fields.
