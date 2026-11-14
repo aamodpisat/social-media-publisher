@@ -18,6 +18,7 @@ from google.oauth2 import service_account
 
 import main as core
 import media_pipeline as pipeline
+import music
 from remote_state import RemoteState
 from dotenv import load_dotenv
 
@@ -26,7 +27,7 @@ def apply_host_aliases():
     load_dotenv(core.ROOT / ".env", override=False)
     private_defaults = core.ROOT / "runtime-config.json"
     if private_defaults.exists():
-        allowed = {"GOOGLE_DRIVE_FOLDER_ID", "GOOGLE_DRIVE_POSTS_FOLDER_ID", "GOOGLE_DRIVE_STORIES_FOLDER_ID", "GOOGLE_DRIVE_REELS_FOLDER_ID", "INSTAGRAM_EXPECTED_USERNAME", "STATE_BACKEND", "BRAND_NAME", "BRAND_NICHE", "BRAND_AUDIENCE", "BRAND_VOICE", "BRAND_OFFER", "BRAND_CTA", "BRAND_HASHTAG"}
+        allowed = {"GOOGLE_DRIVE_FOLDER_ID", "GOOGLE_DRIVE_POSTS_FOLDER_ID", "GOOGLE_DRIVE_STORIES_FOLDER_ID", "GOOGLE_DRIVE_REELS_FOLDER_ID", "GOOGLE_DRIVE_MUSIC_FOLDER_ID", "INSTAGRAM_EXPECTED_USERNAME", "STATE_BACKEND", "BRAND_NAME", "BRAND_NICHE", "BRAND_AUDIENCE", "BRAND_VOICE", "BRAND_OFFER", "BRAND_CTA", "BRAND_HASHTAG"}
         values = json.loads(private_defaults.read_text(encoding="utf-8"))
         if not isinstance(values, dict) or any(k not in allowed or not isinstance(v, str) for k, v in values.items()):
             raise core.SafeError("Invalid private runtime defaults; only nonsecret brand/folder/state settings are allowed.")
@@ -55,6 +56,9 @@ class MCPConfig(core.Config):
         else:
             self.sources = {self.folder: "POST"}
         self.expected_username = os.getenv("INSTAGRAM_EXPECTED_USERNAME", "").lstrip("@").strip()
+        self.music_folder = os.getenv("GOOGLE_DRIVE_MUSIC_FOLDER_ID", "").strip()
+        if self.music_folder and (not re.fullmatch(r"[A-Za-z0-9_-]+", self.music_folder) or self.music_folder in self.sources):
+            raise core.SafeError("Configure a distinct valid music folder ID.")
 
     def connect(self, kind="POST"):
         self.openai_key = os.getenv("OPENAI_API_KEY", "").strip()
@@ -84,6 +88,7 @@ def pending_record(state):
 def plan(cfg, state):
     pending = pending_record(state)
     output = {
+        "music_folder_id": getattr(cfg, "music_folder", ""),
         "folder_id": cfg.folder,
         "sources": [{"folder_id": folder, "kind": kind} for folder, kind in pipeline.source_map(cfg).items()],
         "tracked_file_ids": sorted(state["records"]),
@@ -96,6 +101,8 @@ def plan(cfg, state):
         output.update(action="resume", file_id=pending[0])
     elif pending:
         output.update(action="fetch_pending", file_id=pending[0], filename=pending[1]["name"])
+        if pending[1].get("music"):
+            output["pending_music"] = pending[1]["music"]
     else:
         output.update(action="search")
     return output
@@ -152,7 +159,14 @@ def read_input(path, cfg, state):
         raise core.SafeError("Local byte count differs from the connector-reported original size.")
     if expected_sha is not None and hashlib.sha256(raw).hexdigest() != expected_sha.lower():
         raise core.SafeError("Local bytes changed after materialization. Fetch the original again.")
-    return {"id": file_id, "name": filename, "size": str(len(raw)), "kind": kind, "is_video": video}, raw
+    candidate = {"id": file_id, "name": filename, "size": str(len(raw)), "kind": kind, "is_video": video}
+    if "music" in value:
+        if video:
+            raise core.SafeError("Music attachments are supported only for still photos; existing video audio is preserved.")
+        candidate["music"] = music.read_handoff(value["music"], getattr(cfg, "music_folder", ""))
+    if pending and pending[1].get("music") != (music.permanent_selection(candidate["music"]) if candidate.get("music") else None):
+        raise core.SafeError("Pending music selection changed or is missing. Refetch the saved track; do not select another.")
+    return candidate, raw
 
 
 class MCPServices(core.Services):
@@ -187,6 +201,12 @@ class MCPServices(core.Services):
         core.LOG.info("Instagram account identity checked for %s.", kind)
 
     def prepare(self, record, raw):
+        if record.get("music"):
+            selection = self.supplied[0].get("music") if self.supplied else None
+            if not selection or music.permanent_selection(selection) != record["music"]:
+                raise core.SafeError("Refetch the saved music track before rendering this pending photo.")
+            jpeg = core.prepare_jpeg(raw, story=True)
+            return music.render_photo(jpeg, selection), "video/mp4", jpeg
         return pipeline.prepare_media(record, raw)
 
     def upload_media(self, object_name, data, mime):

@@ -9,6 +9,7 @@ import uuid
 
 from PIL import Image
 import main as core
+import music
 
 VIDEO_LIMIT = 250 * 1024 * 1024
 
@@ -118,7 +119,7 @@ def publish_record(cfg, services, state, record):
     record["publish_attempted"] = True
     record["publish_attempted_at"] = core.now()
     core.atomic_save(cfg.state_path, state)
-    core.LOG.info("Publishing %s to Instagram...", record.get("kind", "POST"))
+    core.LOG.info("Publishing %s to Instagram...", record.get("publish_kind", record.get("kind", "POST")))
     result = services.graph("POST", f"{cfg.account}/media_publish", data={"creation_id": record["container_id"]})
     if not result.get("id"):
         raise core.SafeError("Publishing returned no media ID. Outcome held for review; no automatic second publishing request.")
@@ -126,8 +127,8 @@ def publish_record(cfg, services, state, record):
 
 
 def container_fields(record, url):
-    kind = record.get("kind", "POST")
-    key = "video_url" if record.get("is_video", False) else "image_url"
+    kind = record.get("publish_kind", record.get("kind", "POST"))
+    key = "video_url" if record.get("output_is_video", record.get("is_video", False)) else "image_url"
     fields = {key: url}
     if kind == "STORY":
         fields["media_type"] = "STORIES"
@@ -181,6 +182,10 @@ def run_once(cfg, services, state, dry_run=False):
         record = {"status": "pending", "sha256": digest, "name": candidate["name"],
                   "kind": candidate.get("kind", "POST"), "is_video": candidate.get("is_video", False),
                   "started_at": core.now(), "publish_attempted": False}
+        if candidate.get("music"):
+            record["music"] = music.permanent_selection(candidate["music"])
+            record["output_is_video"] = True
+            record["publish_kind"] = "REEL" if record["kind"] == "POST" else record["kind"]
         services.validate_account(record["kind"])
     core.LOG.info("Preparing %s (%s)...", record.get("kind", "POST"), "video" if record.get("is_video") else "image")
     media, mime, vision = services.prepare(record, raw)
@@ -197,14 +202,14 @@ def run_once(cfg, services, state, dry_run=False):
     if dry_run:
         folder = core.ROOT / "preview"
         folder.mkdir(exist_ok=True)
-        target = folder / ("media.mp4" if record.get("is_video") else "media.jpg")
+        target = folder / ("media.mp4" if mime == "video/mp4" else "media.jpg")
         target.write_bytes(media)
         (folder / "vision.jpg").write_bytes(vision)
         (folder / "caption.txt").write_text(record["caption"] + "\n", encoding="utf-8")
         core.LOG.info("Dry run complete: preview/media.*, vision.jpg and caption.txt. Story captions are intentionally empty. Nothing hosted or published.")
         return
     if not record.get("object_name"):
-        suffix = ".mp4" if record.get("is_video") else ".jpg"
+        suffix = ".mp4" if mime == "video/mp4" else ".jpg"
         record["object_name"] = f"instagram-temp/{uuid.uuid4().hex}{suffix}"
     core.atomic_save(cfg.state_path, state)
     url = services.upload_media(record["object_name"], media, mime)
