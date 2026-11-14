@@ -71,6 +71,8 @@ Posts: JPEG/PNG images. Stories: JPEG/PNG or MP4/MOV. Reels: MP4/MOV. Sources mu
 
 Story photos are fitted directly from the orientation-corrected original to a 1080×1920 canvas, without feed aspect-ratio conversion first. A 9:16 source fills that canvas. Other ratios retain all content with white padding; the workflow does not crop photography or embedded text to force a fill. Feed photos keep their separate aspect-ratio rules.
 
+Set `INSTAGRAM_STORY_MENTIONS` to comma-separated usernames to mention accounts on new image/video Stories through Meta's `user_tags` field. No sticker or image overlay is rendered. The selection is saved with the original pending record, so configuration changes do not alter recovery attempts. Existing Stories are not edited or reposted. Meta enforces account privacy and mention permissions; a rejected tag is held for review without an automatic untagged retry. Feed photos and Reels do not inherit Story mentions.
+
 ## Optional licensed music for still photos
 
 Set the nonsecret `GOOGLE_DRIVE_MUSIC_FOLDER_ID` to a separate private folder of original MP3 tracks (maximum 25 MB per file). Codex inspects the source photo and chooses a suitable mood using the track filenames; it does not claim to have listened to the files. Use clear labels such as romantic, cinematic, classical, piano, instrumental or celebration. MP3 downloads use authenticated Drive MCP and the same private materialization process as photos. Existing video soundtracks are preserved, not replaced.

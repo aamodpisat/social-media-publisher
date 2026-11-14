@@ -83,6 +83,25 @@ class MediaTests(unittest.TestCase):
         self.assertIn("video_url", services.fields[0])
         self.assertNotIn("caption", services.fields[0])
 
+    def test_story_mentions_are_sent_for_images_and_videos(self):
+        for video in (False, True):
+            fields = media.container_fields({"kind": "STORY", "is_video": video,
+                "story_mentions": ["aamod.pisat", "akanksha_pednekar_pisat"]}, "https://example.invalid/media")
+            self.assertEqual(json.loads(fields["user_tags"]), [
+                {"username": "aamod.pisat"}, {"username": "akanksha_pednekar_pisat"}])
+            self.assertNotIn("caption", fields)
+
+    def test_mentions_are_saved_only_for_new_story_records(self):
+        self.cfg.story_mentions = ["aamod.pisat", "akanksha_pednekar_pisat"]
+        service = MediaServices("STORY")
+        media.run_once(self.cfg, service, self.state)
+        self.assertEqual(self.state["records"]["one"]["story_mentions"], self.cfg.story_mentions)
+
+    def test_story_mentions_do_not_leak_into_reels(self):
+        fields = media.container_fields({"kind": "POST", "publish_kind": "REEL", "output_is_video": True,
+            "caption": "caption", "story_mentions": ["aamod.pisat"]}, "https://example.invalid/media")
+        self.assertNotIn("user_tags", fields)
+
     def test_reel_has_caption_and_reels_type(self):
         services = MediaServices("REEL", video=True)
         media.run_once(self.cfg, services, self.state)

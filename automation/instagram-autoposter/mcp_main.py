@@ -27,7 +27,7 @@ def apply_host_aliases():
     load_dotenv(core.ROOT / ".env", override=False)
     private_defaults = core.ROOT / "runtime-config.json"
     if private_defaults.exists():
-        allowed = {"GOOGLE_DRIVE_FOLDER_ID", "GOOGLE_DRIVE_POSTS_FOLDER_ID", "GOOGLE_DRIVE_STORIES_FOLDER_ID", "GOOGLE_DRIVE_REELS_FOLDER_ID", "GOOGLE_DRIVE_MUSIC_FOLDER_ID", "INSTAGRAM_EXPECTED_USERNAME", "STATE_BACKEND", "BRAND_NAME", "BRAND_NICHE", "BRAND_AUDIENCE", "BRAND_VOICE", "BRAND_OFFER", "BRAND_CTA", "BRAND_HASHTAG"}
+        allowed = {"GOOGLE_DRIVE_FOLDER_ID", "GOOGLE_DRIVE_POSTS_FOLDER_ID", "GOOGLE_DRIVE_STORIES_FOLDER_ID", "GOOGLE_DRIVE_REELS_FOLDER_ID", "GOOGLE_DRIVE_MUSIC_FOLDER_ID", "INSTAGRAM_EXPECTED_USERNAME", "INSTAGRAM_STORY_MENTIONS", "STATE_BACKEND", "BRAND_NAME", "BRAND_NICHE", "BRAND_AUDIENCE", "BRAND_VOICE", "BRAND_OFFER", "BRAND_CTA", "BRAND_HASHTAG"}
         values = json.loads(private_defaults.read_text(encoding="utf-8"))
         if not isinstance(values, dict) or any(k not in allowed or not isinstance(v, str) for k, v in values.items()):
             raise core.SafeError("Invalid private runtime defaults; only nonsecret brand/folder/state settings are allowed.")
@@ -56,6 +56,10 @@ class MCPConfig(core.Config):
         else:
             self.sources = {self.folder: "POST"}
         self.expected_username = os.getenv("INSTAGRAM_EXPECTED_USERNAME", "").lstrip("@").strip()
+        self.story_mentions = list(dict.fromkeys(
+            name.strip().lstrip("@") for name in os.getenv("INSTAGRAM_STORY_MENTIONS", "").split(",") if name.strip()))
+        if any(not re.fullmatch(r"[A-Za-z0-9._]{1,30}", name) for name in self.story_mentions) or len(self.story_mentions) > 20:
+            raise core.SafeError("Configure at most 20 valid Instagram Story mention usernames.")
         self.music_folder = os.getenv("GOOGLE_DRIVE_MUSIC_FOLDER_ID", "").strip()
         if self.music_folder and (not re.fullmatch(r"[A-Za-z0-9_-]+", self.music_folder) or self.music_folder in self.sources):
             raise core.SafeError("Configure a distinct valid music folder ID.")

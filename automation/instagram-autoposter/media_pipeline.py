@@ -132,6 +132,8 @@ def container_fields(record, url):
     fields = {key: url}
     if kind == "STORY":
         fields["media_type"] = "STORIES"
+        if record.get("story_mentions"):
+            fields["user_tags"] = json.dumps([{"username": name} for name in record["story_mentions"]])
         # Stories do not accept feed-style captions or hashtags.
     else:
         fields["caption"] = record["caption"]
@@ -182,6 +184,8 @@ def run_once(cfg, services, state, dry_run=False):
         record = {"status": "pending", "sha256": digest, "name": candidate["name"],
                   "kind": candidate.get("kind", "POST"), "is_video": candidate.get("is_video", False),
                   "started_at": core.now(), "publish_attempted": False}
+        if record["kind"] == "STORY" and getattr(cfg, "story_mentions", None):
+            record["story_mentions"] = list(cfg.story_mentions)
         if candidate.get("music"):
             record["music"] = music.permanent_selection(candidate["music"])
             record["output_is_video"] = True
