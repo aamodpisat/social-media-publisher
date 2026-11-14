@@ -1,0 +1,10 @@
+.env
+secrets/
+data/
+preview/
+work/
+.venv/
+__pycache__/
+*.pyc
+*.log
+runtime-config.json
