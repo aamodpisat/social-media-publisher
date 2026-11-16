@@ -65,4 +65,4 @@ For the connected photography brand and the manual approved-draft handoff, see [
 
 ## Google Drive MCP automation
 
-The separate [Drive MCP Instagram automation](automation/instagram-autoposter/README.md) supports feed photos, Stories and Reels from a Codex task, with a fresh-environment bootstrap and canonical GCS posting history. Credentials and private runtime settings stay outside Git.
+The separate [Drive MCP Instagram automation](automation/instagram-autoposter/README.md) supports feed photos, Stories and Reels from a cloud agent, with a fresh-environment bootstrap and canonical GCS posting history. The daily 7:30 PM India setup is in [docs/INSTAGRAM_CLOUD_SETUP.md](docs/INSTAGRAM_CLOUD_SETUP.md). Credentials and private runtime settings stay outside Git.
