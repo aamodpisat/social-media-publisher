@@ -53,7 +53,11 @@ Normal commands:
 ./run.sh --input work/handoff.json
 ./run.sh --resume
 ./run.sh --status
+.venv/bin/python drive_files.py download --file-id FILE_ID --dest work/originals
+.venv/bin/python drive_files.py delete --file-id FILE_ID
 ```
+
+`download` saves one private original using the Drive user login (`GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET`, `GOOGLE_DRIVE_REFRESH_TOKEN`). It does not use the Storage key. `delete` permanently removes one source file only when the posting record status is `published` and the file's only publishing parent is Posts, Stories, or Reels. Music files, pending files, and failed publishes are refused. The daily cloud prompt and the click-by-click setup are in [CLOUD_AGENT_PROMPT.md](CLOUD_AGENT_PROMPT.md) and [docs/INSTAGRAM_CLOUD_SETUP.md](../../docs/INSTAGRAM_CLOUD_SETUP.md).
 
 `--ensure-state` is idempotent and does not publish. `--input` without --dry-run publishes immediately. `--resume` can finish a saved container. A source file/hash is suppressed globally across formats after tracking; identical bytes are not intentionally cross-posted. Changing filenames or computers cannot reset the record. Edited source bytes may represent new media.
 
